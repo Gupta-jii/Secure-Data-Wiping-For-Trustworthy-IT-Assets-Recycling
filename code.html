@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CleanWipe - Polished MVP Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+            background: #020617; 
+        }
+        .app-container {
+            transition: all 0.5s ease-in-out;
+            height: 95vh;
+            max-height: 800px;
+            background: linear-gradient(145deg, #1e293b, #0f172a); 
+        }
+        .app-screen {
+            display: none;
+            animation: fadeIn 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .app-screen.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .log-line, .boot-line {
+            animation: slideIn 0.4s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .drive-item:hover .drive-actions {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .step {
+            transition: all 0.4s ease-in-out;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #0f172a;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+            font-weight: normal;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .button-press {
+            transition: all 0.1s ease-in-out;
+        }
+        .button-press:active {
+            transform: scale(0.97);
+            filter: brightness(0.9);
+        }
+        .glow-shadow {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3), 0 0 5px rgba(59, 130, 246, 0.2);
+        }
+        .glow-shadow-red {
+             box-shadow: 0 0 15px rgba(239, 68, 68, 0.3), 0 0 5px rgba(239, 68, 68, 0.2);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen p-4">
+
+    <div id="app-container" class="app-container w-full max-w-lg bg-slate-900 text-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+
+   
+        <div id="os-selection-screen" class="app-screen active flex-col justify-center items-center h-full p-8 text-center">
+            <div class="p-4 bg-blue-600/10 rounded-full inline-block">
+                <div class="p-4 bg-blue-600/20 rounded-full">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </div>
+            </div>
+            <h1 class="text-5xl font-extrabold mt-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-300">CleanWipe</h1>
+            <p class="text-slate-400 mt-2 mb-8">Select the target device's operating system.</p>
+            <div class="grid grid-cols-3 gap-4 w-full max-w-md">
+                <div onclick="selectOS('Windows')" class="bg-slate-800 p-4 rounded-lg flex flex-col items-center justify-center hover:bg-slate-700/50 cursor-pointer transition-all button-press border border-slate-700 hover:border-blue-500">
+                    <svg class="w-12 h-12 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M3,12V6.75L9,5.43V11.91L3,12M21,12V4.5L10.5,3V11.91L21,12M3,13.09V18.25L9,19.57V13.09L3,13.09M21,13.09V20.5L10.5,22V13.09L21,13.09Z" /></svg>
+                    <span class="mt-2 font-semibold">Windows</span>
+                </div>
+                <div onclick="selectOS('Linux')" class="bg-slate-800 p-4 rounded-lg flex flex-col items-center justify-center hover:bg-slate-700/50 cursor-pointer transition-all button-press border border-slate-700 hover:border-blue-500">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Tux.png" alt="Linux Logo" class="w-12 h-12 object-contain">
+                    <span class="mt-2 font-semibold">Linux</span>
+                </div>
+                <div onclick="selectOS('Android')" class="bg-slate-800 p-4 rounded-lg flex flex-col items-center justify-center hover:bg-slate-700/50 cursor-pointer transition-all button-press border border-slate-700 hover:border-blue-500">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d7/Android_robot.svg" alt="Android Logo" class="w-12 h-12">
+                    <span class="mt-2 font-semibold">Android</span>
+                </div>
+            </div>
+        </div>
+        
+   
+        <div id="boot-screen" class="app-screen flex-col justify-center items-center h-full p-8 font-mono text-sm text-green-400 bg-black">
+            <div id="boot-log" class="w-full max-w-md text-left">
+                <!-- Boot logs will be injected here -->
+            </div>
+            <div class="mt-4 text-center w-full max-w-md">
+                <div class="w-full bg-slate-700 rounded-full h-1.5"><div id="boot-progress" class="bg-green-500 h-1.5 rounded-full" style="width: 0%; transition: width 0.3s ease-in-out;"></div></div>
+            </div>
+        </div>
+
+   
+        <div id="desktop-dashboard-screen" class="app-screen flex-col h-full">
+            <header class="p-4 border-b border-slate-700/50 grid grid-cols-3 items-center flex-shrink-0">
+                <div class="text-left">
+                     <button onclick="resetApp()" class="flex items-center text-slate-300 hover:text-white transition-colors button-press">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
+                        Back
+                    </button>
+                </div>
+                <div class="text-center flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <h1 class="text-xl font-bold ml-2">CleanWipe</h1>
+                </div>
+                <div class="text-right">
+                    <button onclick="showScreen('verification-screen')" class="bg-slate-700 hover:bg-slate-600 text-sm font-semibold py-2 px-4 rounded-lg transition-colors button-press">Verify Certificate</button>
+                </div>
+            </header>
+            <main class="flex-grow p-6 overflow-y-auto">
+                <h2 class="text-2xl font-bold mb-1 text-center">Bootable Environment <span id="desktop-os-badge" class="text-lg text-yellow-300"></span></h2>
+                <p class="text-center text-slate-400 mb-6">Detected Storage Devices</p>
+                <div id="desktop-drive-list" class="space-y-4"></div>
+            </main>
+        </div>
+
+        <div id="desktop-wipe-process-screen" class="app-screen flex-col h-full">
+            <header class="p-4 border-b border-slate-700/50 flex justify-between items-center flex-shrink-0">
+                 <button onclick="showScreen('desktop-dashboard-screen')" class="flex items-center text-slate-300 hover:text-white transition-colors button-press">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
+                    Dashboard
+                </button>
+                <h1 id="desktop-wipe-process-title" class="text-xl font-bold"></h1>
+            </header>
+            <div class="p-4 flex justify-center items-center space-x-4 border-b border-slate-800 flex-shrink-0">
+                <div id="desktop-step-1" class="step flex items-center text-blue-400"><div class="w-8 h-8 rounded-full border-2 border-blue-400 flex items-center justify-center font-bold">1</div><span class="ml-2 font-semibold">Analyze</span></div>
+                <div class="w-12 h-px bg-slate-700"></div>
+                <div id="desktop-step-2" class="step flex items-center text-slate-600"><div class="w-8 h-8 rounded-full border-2 border-slate-700 flex items-center justify-center font-bold">2</div><span class="ml-2 font-semibold">Select Method</span></div>
+                <div class="w-12 h-px bg-slate-700"></div>
+                <div id="desktop-step-3" class="step flex items-center text-slate-600"><div class="w-8 h-8 rounded-full border-2 border-slate-700 flex items-center justify-center font-bold">3</div><span class="ml-2 font-semibold">Wipe</span></div>
+            </div>
+            <main class="flex-grow p-6 overflow-y-auto">
+                <div id="desktop-analysis-view" class="w-full">
+                    <h3 class="font-bold text-lg mb-4">Drive Analysis Results</h3>
+                    <div id="analysis-results-container" class="bg-slate-800 p-4 rounded-lg space-y-3">
+                         <div class="flex items-center justify-center h-24">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+                            <p class="ml-4">Analyzing drive, please wait...</p>
+                        </div>
+                    </div>
+                    <button onclick="showDesktopWipeStep('desktop-method-selection-view')" id="analysis-next-btn" class="mt-8 w-full bg-blue-600 hover:bg-blue-500 transition-colors text-white font-bold py-3 px-4 rounded-lg text-lg opacity-50 cursor-not-allowed glow-shadow" disabled>Next: Select Method</button>
+                </div>
+                <div id="desktop-method-selection-view" class="w-full hidden"><h3 class="font-bold text-lg mb-4">Select Sanitization Standard</h3><div class="space-y-3" id="desktop-method-options"></div><button onclick="showConfirmation()" class="mt-8 w-full bg-blue-600 hover:bg-blue-500 transition-colors text-white font-bold py-3 px-4 rounded-lg text-lg button-press glow-shadow">Next: Final Confirmation</button></div>
+                <div id="desktop-wiping-view" class="w-full hidden text-center"><h2 class="text-3xl font-bold mb-2">Sanitizing...</h2><div class="w-full bg-slate-700 rounded-full h-4 my-4"><div id="desktop-progress-bar" class="bg-green-500 h-4 rounded-full transition-all duration-500" style="width: 0%"></div></div><p id="desktop-progress-text" class="text-lg font-semibold mb-4">0%</p><div id="desktop-log-container" class="w-full h-64 bg-black rounded-lg p-4 font-mono text-xs text-left overflow-y-auto text-green-400 flex flex-col-reverse"></div></div>
+            </main>
+        </div>
+        
+   
+        <div id="android-dashboard-screen" class="app-screen flex-col h-full">
+             <header class="p-4 border-b border-slate-700/50 flex justify-between items-center flex-shrink-0">
+                <div class="flex items-center">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d7/Android_robot.svg" alt="Android Logo" class="w-6 h-6">
+                    <h1 class="text-xl font-bold ml-2">CleanWipe for Android</h1>
+                </div>
+                 <button onclick="resetApp()" class="text-slate-400 hover:text-white button-press">&times;</button>
+            </header>
+            <main class="flex-grow p-6 overflow-y-auto">
+                 <h2 class="text-2xl font-bold mb-4">Select Area to Erase</h2>
+                 <div id="android-storage-list" class="space-y-4"></div>
+            </main>
+        </div>
+
+        <div id="android-wiping-screen" class="app-screen flex-col h-full p-6 text-center">
+            <h2 class="text-3xl font-bold mb-2">Erasing Data...</h2>
+            <p id="android-wiping-info" class="text-slate-400 mb-8"></p>
+            <div class="w-full bg-slate-700 rounded-full h-4 my-4"><div id="android-progress-bar" class="bg-gradient-to-r from-green-400 to-teal-400 h-4 rounded-full transition-all duration-500" style="width: 0%"></div></div>
+            <p id="android-progress-text" class="text-lg font-semibold mb-4">0%</p>
+            <div id="android-log-container" class="w-full flex-grow bg-black rounded-lg p-4 font-mono text-xs text-left overflow-y-auto text-green-400 flex flex-col-reverse"></div>
+        </div>
+
+
+   
+        <div id="success-screen" class="app-screen flex-col justify-center items-center h-full p-8 text-center">
+             <div class="p-4 bg-green-500/10 rounded-full"><div class="p-4 bg-green-500/20 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg></div></div>
+            <h2 class="text-3xl font-bold mt-6">Sanitization Complete!</h2>
+            <p class="text-slate-400 mt-2 mb-8">The device data has been securely and permanently erased.</p>
+            <button onclick="generateCertificate()" class="w-full max-w-xs bg-slate-700 hover:bg-slate-600 transition-colors text-white font-bold py-4 px-4 rounded-xl text-lg button-press">Download Wipe Certificate</button>
+             <button onclick="resetApp()" class="w-full max-w-xs mt-4 bg-transparent hover:bg-slate-800 transition-colors text-slate-400 font-bold py-3 px-4 rounded-xl button-press">Finish & Reboot</button>
+        </div>
+
+        <div id="verification-screen" class="app-screen flex-col h-full">
+            <header class="p-4 border-b border-slate-700/50 flex justify-between items-center">
+                <button onclick="selectOS(appState.os || 'Windows')" class="flex items-center text-slate-300 hover:text-white transition-colors button-press">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
+                    Back to Dashboard
+                </button>
+                <h1 class="text-xl font-bold">Certificate Verification</h1>
+            </header>
+            <main class="flex-grow p-8 flex flex-col items-center justify-center text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400 mb-4"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <h2 class="text-2xl font-bold">Verify a Wipe Certificate</h2>
+                <p class="text-slate-400 mt-2 mb-6 max-w-md">Upload the generated PDF certificate to verify its digital signature and confirm its authenticity.</p>
+                <label for="cert-upload" class="w-full max-w-xs bg-blue-600 hover:bg-blue-500 transition-colors text-white font-bold py-4 px-4 rounded-xl text-lg button-press glow-shadow">Upload Certificate</label>
+                <input type="file" id="cert-upload" class="hidden" accept=".pdf" onchange="verifyCertificate(event)">
+                <div id="verification-result" class="mt-8 text-lg w-full max-w-md"></div>
+            </main>
+        </div>
+    </div>
+
+   
+    <div id="confirmation-modal" class="absolute inset-0 bg-black/80 backdrop-blur-sm items-center justify-center p-4" style="display: none;">
+        <div class="bg-slate-800 p-8 rounded-2xl text-center max-w-md shadow-2xl border border-slate-700" style="animation: fadeIn 0.3s;">
+             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-red-500 mb-4"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" x2="12" y1="9" y2="13"></line><line x1="12" x2="12.01" y1="17" y2="17"></line></svg>
+            <h2 id="confirm-title" class="text-2xl font-bold mb-2">Final Confirmation</h2>
+            <p id="confirm-text" class="text-slate-400 mb-6"></p>
+            <div class="flex gap-4">
+                <button onclick="document.getElementById('confirmation-modal').style.display = 'none'" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg button-press">Cancel</button>
+                <button id="confirm-button" onclick="startWipe()" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg button-press glow-shadow-red">Yes, Erase Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        let lastGeneratedCertificate = null;
+        const appContainer = document.getElementById('app-container');
+        const appState = {
+            os: null,
+            activeDrive: null,
+            selectedMethod: null
+        };
+        const simulatedDesktopDrives = [
+            { id: 'NVME01', type: 'NVMe SSD', model: 'Enterprise NVMe Drive', size: '1.6 TB', bestMethod: 'NVMe Format (Crypto Erase)', standard: 'NIST SP 800-88' },
+            { id: 'SATA01', type: 'SATA SSD', model: 'Kingston DC500R', size: '960 GB', bestMethod: 'ATA Secure Erase', standard: 'NIST SP 800-88' },
+            { id: 'SATA02', type: 'SATA HDD', model: 'Seagate Exos 7E8', size: '4 TB', bestMethod: 'DoD 5220.22-M (3-pass)', standard: 'DoD 5220.22-M' },
+        ];
+         const simulatedAndroidStorage = [
+            { id: 'INTERNAL', type: 'Internal Storage', model: 'UFS 3.1', size: '256 GB', bestMethod: 'Factory Reset + Crypto Key Wipe' },
+            { id: 'SDCARD', type: 'SD Card', model: 'SanDisk Extreme', size: '128 GB', bestMethod: 'Full Overwrite' },
+            { id: 'CACHE', type: 'System Cache', model: 'N/A', size: '4 GB', bestMethod: 'Secure Deletion' },
+        ];
+
+        const windowsWipeMethods = [
+            { id: 'NIST SP 800-88', name: 'NIST SP 800-88 Purge', description: 'Cryptographic erase for SSDs, multi-pass for HDDs.' },
+            { id: 'DoD 5220.22-M', name: 'DoD 5220.22-M', description: '3-pass overwrite, common for government use.' },
+            { id: 'Gutmann method', name: 'Gutmann method', description: '35-pass overwrite for maximum security.' }
+        ];
+
+        const linuxWipeMethods = [
+            { id: 'NIST SP 800-88', name: 'NIST SP 800-88 Purge', description: 'Uses cryptographic and block-level overwrite.' },
+            { id: 'Crypto Erase', name: 'Crypto Erase', description: 'Uses built-in hardware encryption keys to instantly erase data.' },
+            { id: 'n-Wipe', name: 'n-Wipe', description: 'A custom, high-speed single-pass overwrite with verification.' }
+        ];
+
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.app-screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+        
+        function resetApp() {
+            showScreen('os-selection-screen');
+        }
+
+        function selectOS(os) {
+            appState.os = os;
+            showScreen('boot-screen');
+            simulateBoot(os);
+        }
+
+        function simulateBoot(os) {
+            const bootLog = document.getElementById('boot-log');
+            const bootProgress = document.getElementById('boot-progress');
+            bootLog.innerHTML = '';
+            bootProgress.style.width = '0%';
+            
+            const bootMessages = [
+                "CleanWipe Bootloader v1.9...",
+                "Initializing kernel modules...",
+                "Detecting hardware interfaces...",
+                "Loading USB drivers [usb-storage]...",
+                "Mounting virtual filesystem [tmpfs]...",
+                `Starting CleanWipe for ${os}...`
+            ];
+
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i < bootMessages.length) {
+                    const line = document.createElement('p');
+                    line.className = 'boot-line';
+                    line.textContent = `[ OK ] ${bootMessages[i]}`;
+                    bootLog.appendChild(line);
+                    bootProgress.style.width = `${((i + 1) / bootMessages.length) * 100}%`;
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        if (os === 'Android') {
+                            appContainer.className = 'app-container w-full max-w-sm h-full sm:h-[800px] sm:max-h-[90vh] bg-slate-900 text-white rounded-none sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col';
+                            populateAndroidStorage();
+                            showScreen('android-dashboard-screen');
+                        } else {
+                            appContainer.className = 'app-container w-full max-w-4xl bg-slate-900 text-white rounded-2xl shadow-2xl overflow-hidden flex flex-col';
+                            document.getElementById('desktop-os-badge').innerText = `(${os} Environment)`;
+                            populateDesktopDrives();
+                            showScreen('desktop-dashboard-screen');
+                        }
+                    }, 500);
+                }
+            }, 350);
+        }
+        
+      
+        function populateDesktopDrives() {
+            const driveList = document.getElementById('desktop-drive-list');
+            driveList.innerHTML = '';
+            simulatedDesktopDrives.forEach(drive => {
+                const driveElement = document.createElement('div');
+                driveElement.className = 'drive-item bg-slate-800 p-4 rounded-lg flex items-center justify-between transition-all border border-slate-700/50 hover:border-blue-500/50';
+                driveElement.innerHTML = `<div class="flex items-center"><svg class="w-10 h-10 mr-4 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M4,5V19A2,2 0 0,0 6,21H18A2,2 0 0,0 20,19V5A2,2 0 0,0 18,3H6A2,2 0 0,0 4,5M8,5H10V7H8V5M12,5H14V7H12V5M16,5H18V7H16V5Z" /></svg><div><h3 class="font-bold text-lg">${drive.model} (${drive.id})</h3><p class="text-sm text-slate-400">${drive.size} ${drive.type}</p></div></div><div class="drive-actions opacity-100 sm:opacity-0 sm:transform sm:translateX-4 transition-all duration-300"><button onclick="prepareDesktopWipe('${drive.id}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg button-press glow-shadow">Wipe</button></div>`;
+                driveList.appendChild(driveElement);
+            });
+        }
+        
+        function prepareDesktopWipe(driveId) {
+            appState.activeDrive = simulatedDesktopDrives.find(d => d.id === driveId);
+            const methods = appState.os === 'Linux' ? linuxWipeMethods : windowsWipeMethods;
+            appState.selectedMethod = methods.find(m => m.name === appState.activeDrive.bestMethod) || methods[0];
+            document.getElementById('desktop-wipe-process-title').innerText = `Wiping: ${appState.activeDrive.model}`;
+            showScreen('desktop-wipe-process-screen');
+            showDesktopWipeStep('desktop-analysis-view');
+            simulateAnalysis(appState.activeDrive);
+        }
+
+        function simulateAnalysis(drive) {
+            const nextBtn = document.getElementById('analysis-next-btn');
+            const analysisContainer = document.getElementById('analysis-results-container');
+            nextBtn.disabled = true;
+            nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            analysisContainer.innerHTML = `<div class="flex items-center justify-center h-24"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div><p class="ml-4">Analyzing drive, please wait...</p></div>`;
+
+            setTimeout(() => {
+                populateAnalysisView(drive);
+                nextBtn.disabled = false;
+                nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }, 2500);
+        }
+
+        function populateAnalysisView(drive) {
+            const resultsContainer = document.getElementById('analysis-results-container');
+            const partitions = Math.floor(Math.random() * 3) + 1;
+            const hiddenAreas = drive.type.includes('HDD') 
+                ? `<span class="font-semibold text-yellow-400">DETECTED</span> <span class="tooltip text-slate-400">(?)<span class="tooltiptext">Host Protected Areas (HPA) or Device Configuration Overlays (DCO) are hidden from the OS. CleanWipe will remove these.</span></span>` 
+                : '<span class="font-semibold text-slate-400">NOT APPLICABLE</span>';
+            const encryption = Math.random() > 0.5 ? '<span class="font-semibold text-blue-400">BitLocker (Active)</span>' : '<span class="font-semibold text-slate-400">None</span>';
+
+            let analysisHTML = `
+                <div class="flex justify-between items-center"><span>S.M.A.R.T. Status:</span><span class="font-semibold text-green-400">HEALTHY</span></div>
+                <div class="flex justify-between items-center"><span>Encryption Status:</span>${encryption}</div>
+                <div class="flex justify-between items-center"><span>Partitions Found:</span><span class="font-semibold">${partitions}</span></div>
+            `;
+            if (drive.type.includes('HDD')) {
+                analysisHTML += `
+                <div class="flex justify-between items-center"><span>Hidden Areas:</span><span class="font-semibold text-yellow-400">DETECTED</span></div>
+                <ul class="text-sm text-slate-400 pl-6 list-disc">
+                    <li>Host Protected Area (HPA)</li>
+                    <li>Device Configuration Overlay (DCO)</li>
+                </ul>
+                `;
+            }
+            resultsContainer.innerHTML = analysisHTML;
+        }
+
+        function showDesktopWipeStep(viewId) {
+            ['desktop-analysis-view', 'desktop-method-selection-view', 'desktop-wiping-view'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            const activeView = document.getElementById(viewId);
+            if (activeView) activeView.classList.remove('hidden');
+
+            const steps = ['desktop-step-1', 'desktop-step-2', 'desktop-step-3'];
+            let activeStep = 0;
+            if (viewId === 'desktop-method-selection-view') activeStep = 1;
+            if (viewId === 'desktop-wiping-view') activeStep = 2;
+            
+            steps.forEach((id, index) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const circle = el.children[0];
+                if (index < activeStep) {
+                    el.classList.add('text-green-400'); el.classList.remove('text-blue-400', 'text-slate-600');
+                    circle.classList.add('border-green-400', 'bg-green-400/20'); circle.classList.remove('border-blue-400', 'border-slate-700');
+                    circle.innerHTML = '&#10003;';
+                } else if (index === activeStep) {
+                     el.classList.add('text-blue-400'); el.classList.remove('text-green-400', 'text-slate-600');
+                    circle.classList.add('border-blue-400'); circle.classList.remove('border-green-400', 'border-slate-700', 'bg-green-400/20');
+                    circle.innerText = index + 1;
+                } else {
+                    el.classList.add('text-slate-600'); el.classList.remove('text-blue-400', 'text-green-400');
+                    circle.classList.add('border-slate-700'); circle.classList.remove('border-blue-400', 'border-green-400', 'bg-green-400/20');
+                    circle.innerText = index + 1;
+                }
+            });
+            if(viewId === 'desktop-method-selection-view') populateDesktopMethods();
+        }
+
+        function populateDesktopMethods() {
+            const container = document.getElementById('desktop-method-options');
+            container.innerHTML = '';
+            const methodsToUse = appState.os === 'Linux' ? linuxWipeMethods : windowsWipeMethods;
+
+            methodsToUse.forEach(method => {
+                const isRecommended = method.name === appState.activeDrive.bestMethod;
+                const isSelected = method.id === appState.selectedMethod.id;
+                const el = document.createElement('div');
+                el.className = `p-4 rounded-lg border-2 cursor-pointer transition-all ${isSelected ? 'bg-blue-600/20 border-blue-500' : 'bg-slate-800 border-slate-700 hover:border-blue-500/50'}`;
+                el.onclick = () => selectDesktopMethod(method.id);
+                el.innerHTML = `<div class="flex justify-between items-center"><h3 class="font-bold text-lg">${method.name}</h3>${isRecommended ? '<span class="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">Recommended</span>' : ''}</div><p class="text-sm ${isSelected ? 'text-slate-200' : 'text-slate-400'}">${method.description}</p>`;
+                container.appendChild(el);
+            });
+        }
+
+        function selectDesktopMethod(methodId) {
+            const methodsToUse = appState.os === 'Linux' ? linuxWipeMethods : windowsWipeMethods;
+            appState.selectedMethod = methodsToUse.find(m => m.id === methodId);
+            populateDesktopMethods();
+        }
+        
+    
+        function populateAndroidStorage() {
+            const list = document.getElementById('android-storage-list');
+            list.innerHTML = '';
+            simulatedAndroidStorage.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'bg-slate-800 p-5 rounded-lg border border-slate-700 hover:border-blue-500/50 cursor-pointer button-press';
+                el.onclick = () => prepareAndroidWipe(item.id);
+                el.innerHTML = `<h3 class="font-bold text-lg">${item.type} (${item.size})</h3><p class="text-sm text-slate-400">${item.bestMethod}</p>`;
+                list.appendChild(el);
+            });
+        }
+
+        function prepareAndroidWipe(itemId) {
+            appState.activeDrive = simulatedAndroidStorage.find(item => item.id === itemId);
+            appState.selectedMethod = { name: appState.activeDrive.bestMethod }; // Simplified for Android
+            showConfirmation();
+        }
+
+        
+        function showConfirmation() {
+            document.getElementById('confirm-text').innerHTML = `You are about to permanently erase data from <strong class="text-white">${appState.activeDrive.model}</strong> using the <strong class="text-white">${appState.selectedMethod.name}</strong>. This action cannot be undone.`;
+            document.getElementById('confirmation-modal').style.display = 'flex';
+        }
+
+        function startWipe() {
+            document.getElementById('confirmation-modal').style.display = 'none';
+            if (appState.os === 'Android') {
+                startAndroidWipe();
+            } else {
+                startDesktopWipe();
+            }
+        }
+
+        function startDesktopWipe() {
+            showDesktopWipeStep('desktop-wiping-view');
+            const progressBar = document.getElementById('desktop-progress-bar');
+            const progressText = document.getElementById('desktop-progress-text');
+            const logContainer = document.getElementById('desktop-log-container');
+            const logs = [ `Initializing wipe on ${appState.activeDrive.id}...`, `Target: ${appState.activeDrive.model}`, `Selected Standard: ${appState.selectedMethod.name}`, `Issuing low-level command: ${getWipeCommand(appState.activeDrive)}...`, "Checking for hidden partitions (HPA/DCO)...", "HPA/DCO found. Removing temporary lock...", "Starting overwrite pass 1...", "Pass 1 complete.", "Starting final pass (Verification)...", "Reading random sectors to verify erasure...", "Verification successful. Zeroed sectors confirmed.", "Finalizing logs and preparing certificate...", "Secure wipe complete." ];
+            runWipeSimulation(progressBar, progressText, logContainer, logs);
+        }
+
+        function startAndroidWipe() {
+            showScreen('android-wiping-screen');
+            document.getElementById('android-wiping-info').innerText = `Erasing ${appState.activeDrive.type}`;
+            const progressBar = document.getElementById('android-progress-bar');
+            const progressText = document.getElementById('android-progress-text');
+            const logContainer = document.getElementById('android-log-container');
+            const logs = [ `Initializing wipe on ${appState.activeDrive.model}...`, `Target: ${appState.activeDrive.type}`, `Method: ${appState.activeDrive.bestMethod}`, "Destroying cryptographic keys from TrustZone...", "Issuing eMMC block erase command on /data...", "Overwriting user data partition with random data...", "Clearing application caches and dalvik-cache...", "Verification pass on user partition...", "Wipe complete." ];
+            runWipeSimulation(progressBar, progressText, logContainer, logs);
+        }
+
+        function runWipeSimulation(progressBar, progressText, logContainer, logs) {
+            progressBar.style.width = '0%';
+            progressText.innerText = '0%';
+            logContainer.innerHTML = '';
+            let progress = 0;
+            let logIndex = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 5;
+                if (progress > 100) progress = 100;
+                progressBar.style.width = progress + '%';
+                progressText.innerText = Math.floor(progress) + '%';
+                if (progress > (logIndex * 12) && logIndex < logs.length) {
+                    const logLine = document.createElement('p');
+                    logLine.className = 'log-line';
+                    logLine.innerText = `[${new Date().toLocaleTimeString()}] ${logs[logIndex]}`;
+                    logContainer.prepend(logLine);
+                    logIndex++;
+                }
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => showScreen('success-screen'), 1000);
+                }
+            }, 300);
+        }
+
+        function getWipeCommand(drive) {
+            if (drive.type.includes('NVMe')) return 'ioctl(NVME_IOCTL_FORMAT)';
+            if (drive.type.includes('SATA')) return 'ioctl(HDIO_DRIVE_CMD, ATA_SECURE_ERASE)';
+            if (drive.type.includes('eMMC')) return 'ioctl(MMC_IOC_CMD, MMC_ERASE)';
+            return 'dd if=/dev/urandom';
+        }
+
+        function generateCertificate() {
+            const doc = new jsPDF();
+            const completionDate = new Date();
+            const assetId = `CW-${completionDate.getFullYear()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+            lastGeneratedCertificate = { assetId, model: appState.activeDrive.model, timestamp: completionDate.toLocaleString() };
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.text("Certificate of Data Destruction", 105, 25, null, null, "center");
+            
+            doc.autoTable({
+                startY: 40,
+                head: [['Parameter', 'Value']],
+                body: [
+                    ['Asset ID', assetId], ['Device Model', appState.activeDrive.model], ['Device Type', appState.activeDrive.type],
+                    ['Device Size', appState.activeDrive.size], ['Sanitization Standard', appState.selectedMethod.name],
+                    ['Verification Status', 'Verified'], ['Completion Timestamp', completionDate.toLocaleString()],
+                    ['Software Version', `CleanWipe v1.9 (${appState.os})`],
+                ],
+                theme: 'grid',
+                headStyles: { fillColor: [22, 163, 74] }
+            });
+
+            let finalY = doc.autoTable.previous.finalY;
+
+             doc.autoTable({
+                startY: finalY + 10,
+                head: [['Chain of Custody', '']],
+                body: [
+                    ['Wiped By', 'CleanWipe Bootable Agent'],
+                    ['Verified By', 'Automated Post-Wipe Checksum']
+                ],
+                theme: 'grid',
+                headStyles: { fillColor: [30, 64, 175] }
+            });
+
+            finalY = doc.autoTable.previous.finalY;
+
+            const signature = `SIG-${Math.random().toString(36).substr(2, 40)}`;
+            doc.setFontSize(8);
+            doc.text("Digital Signature (SHA256):", 15, finalY + 15);
+            doc.setFont("courier", "normal");
+            doc.text(signature, 15, finalY + 20);
+            doc.setDrawColor(0);
+            doc.setFillColor(0, 0, 0);
+            for (let i = 0; i < 15; i++) for (let j = 0; j < 15; j++) if (Math.random() > 0.5) doc.rect(160 + (i * 2), finalY + 10 + (j*2), 2, 2, 'F');
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text("Scan to Verify", 175, finalY + 45, null, null, "center");
+            doc.save(`CleanWipe-Cert-${assetId}.pdf`);
+        }
+        
+        function verifyCertificate(event) {
+            const resultDiv = document.getElementById('verification-result');
+            resultDiv.innerHTML = `<p class="text-yellow-400">Verifying...</p>`;
+            setTimeout(() => {
+                if (lastGeneratedCertificate) {
+                    resultDiv.innerHTML = `<div class="p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-left"><p class="font-bold text-green-300">✅ Verification Successful</p><p class="text-sm mt-2">Asset ID: <span class="font-mono">${lastGeneratedCertificate.assetId}</span></p><p class="text-sm">Device: <span class="font-mono">${lastGeneratedCertificate.model}</span></p><p class="text-sm">Wipe Time: <span class="font-mono">${lastGeneratedCertificate.timestamp}</span></p><p class="text-sm mt-2 text-slate-400">The digital signature is valid. This certificate is authentic.</p></div>`;
+                } else {
+                     resultDiv.innerHTML = `<div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-left"><p class="font-bold text-red-300">❌ Verification Failed</p><p class="text-sm mt-2 text-slate-400">No valid certificate was found for verification. Please generate a certificate first.</p></div>`;
+                }
+                event.target.value = '';
+            }, 2000);
+        }
+
+        window.onload = () => {
+            showScreen('os-selection-screen');
+        };
+    </script>
+</body>
+</html>
+
